@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle New Order</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Place Your New Order</h2>
+    
+        <form action="/order" method="POST">
+            <p>
+                <select name="product">
+                <option value="p1">product1</option>
+                <option value="p2">product2</option>
+                <option value="p3">product3</option>
+                <option value="p4">product4</option>
+                </select>
+            </p>
+            <p>
+                <label for="quantity">quantity:</label>
+                <input type="text" name="quantity" id="quantity">
+            </p>
+
+            <label for="address">address</label>
+                <textarea id="address" name="address" rows="5" cols="40"></textarea>
+            
+                
+            <input type="radio" id="flat_rate" name="shipping_option" value="flat_rate">
+            <label for="flat_rate">flat_rate</label><br>
+            <input type="radio" id="ground" name="shipping_option" value="ground">
+            <label for="ground">ground</label><br>
+            <input type="radio" id="express" name="shipping_option" value="express">
+            <label for="express">express</label> 
+
+            <input type="submit">
+        </form>
+
+    </body>
+</html>
