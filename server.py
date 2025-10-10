@@ -86,7 +86,64 @@ def render_order_failure():
 """
     return result
 
+def cancel_order_success():
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
 
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Sorry!</h2>
+
+        <h4>You have successfully cancelled your order.</h4>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
+
+
+def cancel_order_failure():
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Sorry!</h2>
+
+        <h4>Something wrong happened when attempting to cancel your order.
+            Please verify your orders and contact our Customer Support team
+            if the issue persists</h4>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
 def escape_html(str):
     str = str.replace("&", "&amp;")
     str = str.replace('"', "&quot;")
@@ -151,6 +208,8 @@ def render_tracking(order):
         result+= f"<h4>Your order has been shipped and is currently on its way!</h4>\n"
     elif order.get('status') == 'delivered':
         result+= f"<h4>Your order should have arrived. Enjoy!</h4>\n"
+    elif order.get('status') == 'cancelled':
+        result+= f"<h4>This order has been cancelled.</h4>\n"
     result+= """
 
     <div class = "main">
@@ -195,7 +254,16 @@ def render_tracking(order):
     """
 
     if order.get('status') == 'placed':
-        result+= f"<a href='/temp'>Cancel Order</a>\n"
+        result+= """
+                <form action="cancel_order" method="POST" id="cancel">
+                </form>
+                <button type="submit" form="cancel" value="Submit" id="cancelButton">Cancel Order</button>
+
+                <form action="update_shipping" method="POST" id="update">
+                </form>
+                <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>
+
+                """
 
     result+= """
     </div>
@@ -301,7 +369,7 @@ def render_orders(order_filters: dict[str, str]):
 
         """
             
-        if order_filters["status"] == 'all' or order_filters["status"] == 'delivered' or order_filters["status"] == 'shipped' or order_filters["status"] == 'placed':
+        if order_filters["status"] == 'all' or order_filters["status"] != '':
             result+= f"<h4>Searched for: {order_filters["status"]}</h4>\n"
         
         if order_filters["query"] != '':
@@ -618,6 +686,21 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
 
             print("Post URL: " + url + " POST content: " + body)
             toVerify = add_new_order(body)
+            if toVerify != None:
+                return render_order_success(toVerify), "text/html", 200
+            else:
+                return render_order_failure(), "text/html", 200
+            
+
+        except Exception as e:
+
+            return open("static/html/temp.html","r").read(), "text/html", 500
+        
+    if "cancel_order" in url :
+        
+        try:
+
+            print("Post URL: " + url + " POST content: " + body)
             if toVerify != None:
                 return render_order_success(toVerify), "text/html", 200
             else:
