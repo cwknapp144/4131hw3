@@ -50,6 +50,43 @@ orders = [
 # PUT YOUR GLOBAL VARIABLES AND HELPER FUNCTIONS HERE.
 
 
+# I dont know how to account for freed up id enties after deletion.
+# Therefore, we will simply find the largest id currently in the list
+# and go from there.
+def idAssignment(): 
+    newid = max(orderid["id"] for orderid in orders) + 1
+    return newid
+     
+
+def render_order_failure():
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Sorry!</h2>
+
+        <h4>We were unable to process your order</h4>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
+
+
 def escape_html(str):
     str = str.replace("&", "&amp;")
     str = str.replace('"', "&quot;")
@@ -116,6 +153,9 @@ def render_tracking(order):
         result+= f"<h4>Your order should have arrived. Enjoy!</h4>\n"
     result+= """
 
+    <div class = "main">
+
+    <div class = "left">
         <h3> Order Details </h3>
         <table>
             <tr>
@@ -149,6 +189,17 @@ def render_tracking(order):
             
     result+= """
         </table>
+    </div>
+
+    <div class = "right">
+    """
+
+    if order.get('status') == 'placed':
+        result+= f"<a href='/temp'>Cancel Order</a>\n"
+
+    result+= """
+    </div>
+
     </body>
 </html>
 """
@@ -360,11 +411,73 @@ def typeset_dollars(number):
 
 
 def render_order_success(order):
-    pass
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Success!</h2>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
 
 
 def add_new_order(params):
-    pass
+    
+    scrutinize = parse_query_parameters(params)
+
+    # If anything goes wrong, the order will fail. That includes any detection of XSS?
+    flag = False
+
+    for k, v in scrutinize.items():
+        
+        # Client must fill in all fields
+        if not v:
+            flag = True
+
+    # Client must provide integers for quantity field.
+    if not scrutinize.get("quantity").isdigit() :
+        flag = True
+        
+    # Sift through the address. Do not allow anything strange through
+    # %0D%0A is \r\n .
+    # NOTE 1: Worst case, cant we just escape the address portion since quantity is already
+    # picky?
+
+
+    if flag:
+        return None
+    else:
+        assign = idAssignment()
+        orders.append(
+            {
+            "id": assign,
+            "status": "placed",
+            "cost": 0.00,
+            "query": scrutinize.get("query"),
+            "address": scrutinize.get("address"),
+            "product": scrutinize.get("product"),
+            "notes": "",
+            }
+        )
+
+        return assign
+        
 
 
 def cancel_order(params):
@@ -425,7 +538,7 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
 
         # NEW ORDER BLOCK. This condition seems a bit risky.
         if "/order" in url:
-            return open("static/html/temp.html","r").read(), "text/html", 200
+            return open("static/html/order.html","r").read(), "text/html", 200
 
         # TRACKING PAGE
         if "/tracking" in url:
@@ -478,8 +591,6 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
                 return open("static/html/404.html","r").read(), "text/html", 404
 
            
-            
-
     except Exception as e:
         print(e)
         return open("static/html/404.html","r").read(), "text/html", 404
@@ -499,9 +610,26 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
     This function should return three values (string or bytes, string, int) in a list or tuple. The first is the content to return
     The second is the content-type. The third is the HTTP Status Code for the response
     """
-    print("Post URL: " + url + " POST Body: " + body)
-    return open("static/html/temp.html","r").read(), "text/html", 200
 
+    # Placeholder for POST sent by /order.
+    if "new_order_attempt" in url :
+        
+        try:
+
+            print("Post URL: " + url + " POST content: " + body)
+            toVerify = add_new_order(body)
+            if toVerify != None:
+                return render_order_success(toVerify), "text/html", 200
+            else:
+                return render_order_failure(), "text/html", 200
+            
+
+        except Exception as e:
+
+            return open("static/html/temp.html","r").read(), "text/html", 500
+    
+
+     
 
 # You shouldn't need to change content below this. It would be best if you just left it alone.
 
