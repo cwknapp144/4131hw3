@@ -1,0 +1,196 @@
+
+/* ALL PAGES HEADER AND LINKS */
+header {
+    display: flex;
+    justify-content: flex-end;
+    background-color: rgb(126, 109, 96);
+    
+}
+
+header > a {
+    padding: 10px;
+    background-color: rgb(25, 88, 25);
+    color: white;
+    border: 3px solid gray;
+    border-radius: 10px;
+}
+
+header > a:hover {
+    padding: 10px;
+    background-color: rgb(214, 201, 13);
+    color: black;
+    border: 3px solid gray;
+    border-radius: 10px;
+}
+
+
+
+
+/* ALL PAGES BACKGROUND */
+body {
+    background-color: rgb(233, 202, 179);
+}
+
+
+
+
+/* HEADERS */
+h1 {
+    text-align: center;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 48px;
+    letter-spacing: 3px;
+}
+
+h2 {
+    text-align: center;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 36px;
+}
+
+h3 {
+    text-align: center;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 28px;
+}
+
+h4 {
+    text-align: center;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 20px;
+}
+
+
+
+
+
+/* MAIN PAGE FLEX, ETC */
+.main{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 70px;
+    padding-bottom: 30px;
+}
+
+.left {
+    width: 40%;
+    
+}
+
+.right {
+    width: 40%;
+    height: auto;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    font-size: 24px;
+    background-color: rgb(184, 167, 153);
+    color: rgb(25, 88, 25);
+    border-radius: 10px;
+    padding: 10px;
+    border: 10px;
+    margin: 10px;
+    letter-spacing: 1px;
+    
+}
+
+.try {
+    margin-left: 25%;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 28px;
+    letter-spacing: 1px;
+}
+
+.options {
+    margin-left: 25%;
+    letter-spacing: 5px;
+    justify-content: center;
+    font-family: "Gloria Hallelujah", Helvetica, sans-serif;
+    color:rgb(25, 88, 25);
+    font-size: 18px;
+}
+.options {
+    display: table;
+    margin-left: 25%;
+}
+
+
+
+/* MAIN PAGE STAFF GRID. */
+.staffPic{
+    width: 30%;
+    border: 7px solid black;
+    border-radius: 50%;
+    background-color: ivory;
+
+}
+.staff {
+    display: grid;
+    justify-items: center;
+    grid-template-rows: auto;
+    grid-template-columns: auto auto auto;
+}
+
+/* ???????????????????????? */
+.staff > .staffPic {
+   grid-row: 1;
+   grid-row: 2;
+   grid-row: 3;
+}
+
+.staffText {
+    display: grid;
+    justify-items: center;
+    grid-template-rows: auto;
+    grid-template-columns: auto auto auto;
+    padding-bottom: 100px;
+}
+
+.staffText > .staff1Text{
+   grid-column: 1;
+   
+}
+.staffText > .staff2Text{
+   
+   grid-column: 2;
+   
+}
+
+.staffText > .staff3Text{
+   
+   grid-column: 3;
+}
+
+
+/* TABLE FORMATTING */
+table {
+    border-spacing: 15px;
+    width: auto;
+    background-color: white;
+    border-radius: 10px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table th {
+    background-color: rgb(153, 138, 126);
+}
+
+/* The following css was informed by w3schools: https://www.w3schools.com/html/html_table_styling.asp */
+table tr:nth-child(odd){
+    background-color: rgb(194, 177, 163);
+
+}
+
+
+
+
+
+
+
+
+
