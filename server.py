@@ -52,9 +52,9 @@ orders = [
 
 # I dont know how to account for freed up id enties after deletion.
 # Therefore, we will simply find the largest id currently in the list
-# and go from there.
+# and increment new order id by 1.
 def idAssignment(): 
-    newid = max(orderid["id"] for orderid in orders) + 1
+    newid = max(order["id"] for order in orders) + 1
     return newid
      
 
@@ -86,9 +86,11 @@ def render_order_failure():
 """
     return result
 
-def cancel_order_success():
-    
-    result = """
+def cancel_order_success(params):
+
+    k,v = params.split("=")
+
+    result = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -104,9 +106,9 @@ def cancel_order_success():
         </header>
        
 
-        <h2>Sorry!</h2>
+        <h2>Success</h2>
 
-        <h4>You have successfully cancelled your order.</h4>
+        <h4>You have successfully cancelled order #{v}.</h4>
    
         </table>
     </body>
@@ -254,16 +256,21 @@ def render_tracking(order):
     """
 
     if order.get('status') == 'placed':
-        result+= """
+        result+= f"""
                 <form action="cancel_order" method="POST" id="cancel">
+                    <input type="hidden" name="cancel" value="{order.get('id')}"> 
+                    <button type="submit" form="cancel" value="Submit" id="cancelButton">Cancel Order</button>
                 </form>
-                <button type="submit" form="cancel" value="Submit" id="cancelButton">Cancel Order</button>
+                
 
                 <form action="update_shipping" method="POST" id="update">
                 </form>
                 <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>
 
                 """
+    elif order.get('status') == 'cancelled':
+        result+= f"<h4> Order number {order.get('id')} was recently cancelled.</h4>\n"
+
 
     result+= """
     </div>
@@ -509,7 +516,8 @@ def add_new_order(params):
     
     scrutinize = parse_query_parameters(params)
 
-    # If anything goes wrong, the order will fail. That includes any detection of XSS?
+    # If anything goes wrong, the order will fail. Hopefully that will includes any 
+    # detection of XSS?
     flag = False
 
     for k, v in scrutinize.items():
@@ -522,10 +530,13 @@ def add_new_order(params):
     if not scrutinize.get("quantity").isdigit() :
         flag = True
         
-    # Sift through the address. Do not allow anything strange through
+    # TODO: Sift through the address. Do not allow anything strange through
     # %0D%0A is \r\n .
     # NOTE 1: Worst case, cant we just escape the address portion since quantity is already
     # picky?
+
+
+
 
 
     if flag:
@@ -548,12 +559,29 @@ def add_new_order(params):
         
 
 
+
 def cancel_order(params):
-    pass
+    
+    # NOTE: I really only care about the right-hand side. I hope this doesnt backfire.
+    k,v = params.split("=")
+    
+    for order in orders:
+        if order.get('id') == int(v) :
+            if order.get('status') == "placed":
+                print("We found a match to cancel")
+                order['status'] = "cancelled"
+
+                return True
+    
+    return False
 
 
+
+# TODO
 def update_shipping_info(params):
     pass
+
+
 
 
 def server_GET(url: str) -> tuple[str | bytes, str, int]:
@@ -689,7 +717,7 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
             if toVerify != None:
                 return render_order_success(toVerify), "text/html", 200
             else:
-                return render_order_failure(), "text/html", 200
+                return render_order_failure(), "text/html", 400
             
 
         except Exception as e:
@@ -701,14 +729,15 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
         try:
 
             print("Post URL: " + url + " POST content: " + body)
-            if toVerify != None:
-                return render_order_success(toVerify), "text/html", 200
+
+            if cancel_order(body):
+                return cancel_order_success(body), "text/html", 200
             else:
-                return render_order_failure(), "text/html", 200
+                return cancel_order_failure(), "text/html", 400
             
 
         except Exception as e:
-
+            print(e)
             return open("static/html/temp.html","r").read(), "text/html", 500
     
 
