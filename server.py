@@ -54,6 +54,7 @@ orders = [
 # Therefore, we will simply find the largest id currently in the list
 # and increment new order id by 1.
 def idAssignment(): 
+
     newid = max(order["id"] for order in orders) + 1
     return newid
      
@@ -86,9 +87,17 @@ def render_order_failure():
 """
     return result
 
+
+# A simple page to express a successful order cancellation. We pass in the order id simply for display.
 def cancel_order_success(params):
 
-    k,v = params.split("=")
+    # UPDATE: I guess this needs to account for empty body. My bad.
+    if params != '':
+        if "=" in params:
+            k,v = params.split("=")
+
+
+    
 
     result = f"""
     <!DOCTYPE html>
@@ -115,6 +124,7 @@ def cancel_order_success(params):
 </html>
 """
     return result
+
 
 
 def cancel_order_failure():
@@ -146,6 +156,9 @@ def cancel_order_failure():
 </html>
 """
     return result
+
+
+
 def escape_html(str):
     str = str.replace("&", "&amp;")
     str = str.replace('"', "&quot;")
@@ -164,28 +177,47 @@ def unescape_url(url_str):
 
 
 def parse_query_parameters(response):
+    #print("We just entered PQP ")
+    
     # Split the query string into key-value pairs
-    splitparams = response.split("&")
+    if response != '':
+        if "&" in response:
+            splitparams = response.split("&")
+        
+        # Forgot to handle this.
+        elif "=" in response:
+            k,v = response.split("=")
+            paramdict = dict()
+            paramdict[unescape_url(k)] = unescape_url(v)
+            return paramdict
 
+        
+    print("PQP SP: "+ str(splitparams))
     # Initialize a dictionary to store parsed parameters
     paramdict = dict()
 
+   
     # Iterate over each key-value pair
     for param in splitparams :
 
     # Split the pair by '=' to separate key and value
         #print("This param getting split on = is: " +param)
-        k,v = param.split("=")
+        if response != '':
+            if "=" in response:
+                k,v = param.split("=")
         
-        paramdict[unescape_url(k)] = unescape_url(v)
-        #print(paramdict)
-
+                paramdict[unescape_url(k)] = unescape_url(v)
+                #print(paramdict)
+    
     return paramdict
 
 
+# ASSUMPTION: The time-to-shipment is triggered by the tracking page. This is probably
+# bad practice in the long run.
 def render_tracking(order):
     # Its job should be to take one order object (I.E., one of the dictionaries from your orders list) 
     # and return a page a user would see to check the tracking status for the specific order.
+    
     result = """
     <!DOCTYPE html>
     <html lang="en">
@@ -193,6 +225,7 @@ def render_tracking(order):
         <meta charset="UTF-8">
         <title>Burping Turtle Orders</title>
         <link rel="stylesheet" href="/static/css/main.css">
+        <script src="/static/js/update.js" defer></script>
     </head>
     
     <body>
@@ -265,7 +298,9 @@ def render_tracking(order):
 
                 <form action="update_shipping" method="POST" id="update">
                 </form>
-                <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>
+                <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>\n
+
+                <p id="countdown">Time until shipment.</p>\n
 
                 """
     elif order.get('status') == 'cancelled':
@@ -287,8 +322,13 @@ def render_table_row(order):
     pass
 
 
+
+# UPDATE 1 HW3: There is some serious spaghetti going on in here.
+# UPDATE 2 HW3: Was using order_filters["X"] instead of order_filters.get("X") in some placed causing instant crash instead of returning None.
 def render_orders(order_filters: dict[str, str]):
-    
+   
+    #print("these are the order filters" + str(order_filters))
+
     result = """
     <!DOCTYPE html>
     <html lang="en">
@@ -307,7 +347,7 @@ def render_orders(order_filters: dict[str, str]):
         <h2>Orders</h2> """
 
     # Default if there are no params.
-    if len(order_filters) == 0 or (order_filters["status"] == 'all' and order_filters["query"] == ''):
+    if len(order_filters) == 0 or (order_filters.get("status") == 'all' and order_filters.get("query") == ''):
         result+= """
         <form action="/admin/orders" method="GET">
         <p>
@@ -361,7 +401,7 @@ def render_orders(order_filters: dict[str, str]):
         <p>
             <label for="query">query:</label>
             <input type="text" name="query" id="query">
-        </p>
+        </p>\n
         <p>
         <select name="status">
             <option value="placed">Placed</option>
@@ -369,18 +409,18 @@ def render_orders(order_filters: dict[str, str]):
             <option value="delivered">Delivered</option>
             <option value="all">All Statuses</option>
         </select>
-        </p>
+        </p>\n
             <input type="submit">
         </form>
 
 
         """
             
-        if order_filters["status"] == 'all' or order_filters["status"] != '':
-            result+= f"<h4>Searched for: {order_filters["status"]}</h4>\n"
+        if order_filters.get("status") == 'all' or order_filters.get("status") != '':
+            result+= f"<h4>Searched for status: {order_filters.get("status")}</h4>\n"
         
-        if order_filters["query"] != '':
-            result+= f"<h4>Searched for: {order_filters["query"]}</h4>\n"
+        if order_filters.get("query") != '':
+            result+= f"<h4>Searched for query: {order_filters.get("query")}</h4>\n"
             
         result+= """
 
@@ -399,69 +439,105 @@ def render_orders(order_filters: dict[str, str]):
                 <th>Link</th>
             </tr>"""
         
-
+       
         # I'm sure there is a better way to filter results. But this is what we got.
-        found = False    
+        found = False 
+
         for order in orders:
-             
-            if order_filters["status"] == 'all' and order_filters["query"] in order.get("query") and order_filters["query"] != '':
-                
-                result+= f"<tr>\n"
-                result+= f"<td>{order.get('id')}</td>\n"
-                result+= f"<td>{order.get('status')}</td>\n"
-                result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
-                result+= f"<td>{order.get('query')}</td>\n"
-                result+= f"<td>{order.get('address')}</td>\n"
-                result+= f"<td>{order.get('product')}</td>\n"
-                result+= f"<td>{order.get('notes')}</td>\n"
-                result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
-                result+= f"</tr>\n"
-                found = True
 
-            if order_filters["status"] == 'placed' and order_filters["status"] == order.get('status') and (order_filters["query"] in order.get("query") or order_filters["query"] == '') :
-              
-                
-                result+= f"<tr>\n"
-                result+= f"<td>{order.get('id')}</td>\n"
-                result+= f"<td>{order.get('status')}</td>\n"
-                result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
-                result+= f"<td>{order.get('query')}</td>\n"
-                result+= f"<td>{order.get('address')}</td>\n"
-                result+= f"<td>{order.get('product')}</td>\n"
-                result+= f"<td>{order.get('notes')}</td>\n"
-                result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
-                result+= f"</tr>\n"
-                found = True
+
+
+            if "query" in order_filters and "status" in order_filters :
             
-            if order_filters["status"] == 'shipped' and order_filters["status"] == order.get('status') and (order_filters["query"] in order.get("query") or order_filters["query"] == '') :
-              
-                
-                result+= f"<tr>\n"
-                result+= f"<td>{order.get('id')}</td>\n"
-                result+= f"<td>{order.get('status')}</td>\n"
-                result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
-                result+= f"<td>{order.get('query')}</td>\n"
-                result+= f"<td>{order.get('address')}</td>\n"
-                result+= f"<td>{order.get('product')}</td>\n"
-                result+= f"<td>{order.get('notes')}</td>\n"
-                result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
-                result+= f"</tr>\n"
-                found = True
+                if order_filters.get("status") == 'all' and  order_filters.get("query") in order.get("query") and order_filters.get("query") != '':
+                    
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
 
-            if order_filters["status"] == 'delivered' and order_filters["status"] == order.get('status') and (order_filters["query"] in order.get("query") or order_filters["query"] == '') :
-              
+                if order_filters.get("status") == 'placed' and order_filters.get("status") == order.get('status') and ( order_filters.get("query") in order.get("query") or  order_filters.get("query") == '') :
                 
-                result+= f"<tr>\n"
-                result+= f"<td>{order.get('id')}</td>\n"
-                result+= f"<td>{order.get('status')}</td>\n"
-                result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
-                result+= f"<td>{order.get('query')}</td>\n"
-                result+= f"<td>{order.get('address')}</td>\n"
-                result+= f"<td>{order.get('product')}</td>\n"
-                result+= f"<td>{order.get('notes')}</td>\n"
-                result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
-                result+= f"</tr>\n"
-                found = True
+                    
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
+                
+                if order_filters.get("status") == 'shipped' and order_filters.get("status") == order.get('status') and ( order_filters.get("query") in order.get("query") or  order_filters.get("query") == '') :
+                
+                    
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
+
+                if order_filters.get("status") == 'delivered' and order_filters.get("status") == order.get('status') and ( order_filters.get("query") in order.get("query") or  order_filters.get("query") == '') :
+                
+                    
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
+            
+            elif "query" in order_filters and "status" not in order_filters :
+                print("FOUND QUERY ONLY")
+                if  order_filters.get("query") in order.get("query"):
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
+            
+            elif "query" not in order_filters and "status" in order_filters :
+                print("FOUND STATUS ONLY")
+                if order_filters.get("status") == order.get('status'):
+                    result+= f"<tr>\n"
+                    result+= f"<td>{order.get('id')}</td>\n"
+                    result+= f"<td>{order.get('status')}</td>\n"
+                    result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                    result+= f"<td>{order.get('query')}</td>\n"
+                    result+= f"<td>{order.get('address')}</td>\n"
+                    result+= f"<td>{order.get('product')}</td>\n"
+                    result+= f"<td>{order.get('notes')}</td>\n"
+                    result+= f"<td><a href='/tracking/{order.get('id')}'>tracking</a></td>\n"
+                    result+= f"</tr>\n"
+                    found = True
+            #print("WE MADE IT THROUGH A LOOP")
 
 
         result+= """
@@ -563,12 +639,16 @@ def add_new_order(params):
 def cancel_order(params):
     
     # NOTE: I really only care about the right-hand side. I hope this doesnt backfire.
-    k,v = params.split("=")
+    if params != '':
+        if "=" in params:
+            k,v = params.split("=")
+    else:
+        return False
     
     for order in orders:
         if order.get('id') == int(v) :
             if order.get('status') == "placed":
-                print("We found a match to cancel")
+                #print("We found a match to cancel")
                 order['status'] = "cancelled"
 
                 return True
@@ -577,7 +657,7 @@ def cancel_order(params):
 
 
 
-# TODO
+
 def update_shipping_info(params):
     pass
 
@@ -612,7 +692,9 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
             # manually placed into the URL.
             # NOTE TO TA: I'm guessing this is where we are supposed to escape to prevent
             # naughty behavior.
+
             if "?" in url:
+                #print(url[14:])
                 try:
                     return render_orders(parse_query_parameters(url[14:])) , "text/html", 200
 
@@ -659,12 +741,17 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
             return open("static/css/main.css","r").read(), "text/css", 200
         
 
-
+        # IMAGES CALL
         if "/images/main" in url:
             return open("static/images/main.png","rb").read(), "image/", 200
         if "staff.png" in url:
             return open("static/images/staff.png","rb").read(), "image/", 200
 
+
+
+        if "/static/js/update" in url:
+            return open("static/js/update.js","r").read(), "application/javascript", 200
+        
 
 
         # EDGE CASES, HANDLING
@@ -722,23 +809,30 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
 
         except Exception as e:
 
-            return open("static/html/temp.html","r").read(), "text/html", 500
+            return open("static/html/404.html","r").read(), "text/html", 500
         
     if "cancel_order" in url :
         
         try:
 
-            print("Post URL: " + url + " POST content: " + body)
-
-            if cancel_order(body):
-                return cancel_order_success(body), "text/html", 200
-            else:
+            #print("Post URL: " + url + " POST content: " + body)
+            # Yet another bandaid to get around empty POST?
+            if body == None or body == '' :
                 return cancel_order_failure(), "text/html", 400
+                
+            else:
+                if cancel_order(body):
+                    return cancel_order_success(body), "text/html", 200
+                else:
+                    return cancel_order_failure(), "text/html", 400
+                
             
-
         except Exception as e:
             print(e)
-            return open("static/html/temp.html","r").read(), "text/html", 500
+            return open("static/html/404.html","r").read(), "text/html", 500
+        
+
+    return open("static/html/404.html","r").read(), "text/html", 404
     
 
      
