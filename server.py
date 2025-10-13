@@ -802,7 +802,7 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
             print("Post URL: " + url + " POST content: " + body)
             toVerify = add_new_order(body)
             if toVerify != None:
-                return render_order_success(toVerify), "text/html", 200
+                return render_order_success(toVerify), "text/html", 201
             else:
                 return render_order_failure(), "text/html", 400
             
