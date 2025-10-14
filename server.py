@@ -7,6 +7,10 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib
 import re
+import time
+import datetime
+from datetime import *
+
 
 orders = [
     {
@@ -17,6 +21,7 @@ orders = [
         "address": "Slayer King\nThrone Room\nKarak Kadrin, N.W.E. Mtns",
         "product": "The One Burp Stout",
         "notes": "No dry days for the Slayer King",
+        "time": datetime.now(None),
     },
     {
         "id": 1,
@@ -26,6 +31,7 @@ orders = [
         "address": "Red Moon Inn\nUbersreik, Reiksland",
         "product": "Burping Ale",
         "notes": "Tales are always better with good beer",
+        "time": datetime.now(None),
     },
     {
         "id": 2,
@@ -35,6 +41,7 @@ orders = [
         "address": "The Lonely Mountain",
         "product": "Twilight Shores IPA",
         "notes": "The deeper you dig, the more beer you'll need",
+        "time": datetime.now(None),
     },
     {
         "id": 3,
@@ -44,6 +51,7 @@ orders = [
         "address": "Bechafen, Ostermark",
         "product": "Brilliant Earth Hefe-weizen",
         "notes": "There are no such thing as man-sized rats",
+        "time": datetime.now(None),
     },
 ]
 
@@ -237,6 +245,17 @@ def render_tracking(order):
 
         <h2>Order Tracking</h2>
     """
+
+    # Change order status before displaying the details using datetime.
+    diff = datetime.now(None) - order["time"]
+
+    if diff > timedelta(minutes=1):
+        order["status"] = "shipped"
+
+    if diff > timedelta(minutes=2):
+        order["status"] = "delivered"
+    
+    
     if order.get('status') == 'placed':
         result+= f"<h4>Your order has been confirmed by our team and is being prepared!</h4>\n"
     elif order.get('status') == 'shipped':
@@ -345,6 +364,9 @@ def render_orders(order_filters: dict[str, str]):
         </header>
        
         <h2>Orders</h2> """
+
+
+    
 
     # Default if there are no params.
     if len(order_filters) == 0 or (order_filters.get("status") == 'all' and order_filters.get("query") == ''):
@@ -611,10 +633,7 @@ def add_new_order(params):
     # NOTE 1: Worst case, cant we just escape the address portion since quantity is already
     # picky?
 
-
-
-
-
+    # HW3 NOTE: This is where the order is created, so time will be setup here.
     if flag:
         return None
     else:
@@ -628,6 +647,7 @@ def add_new_order(params):
             "address": scrutinize.get("address"),
             "product": scrutinize.get("product"),
             "notes": "",
+            "time": datetime.now(None),
             }
         )
 
