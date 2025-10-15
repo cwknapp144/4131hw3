@@ -1,6 +1,7 @@
 
 /* Adapted from the in class slides */
 document.addEventListener("DOMContentLoaded", ()=>{
+
     let countdown_input = document.getElementById("countdown");
     let state = "on";
     let timer = null;
@@ -10,18 +11,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     timer = setInterval(()=>{
 
+        countdown_input.textContent = `Time until shipment: ${count}`;
         count-=1;
 
         if (count < 0){
 
             count = 0
 
-            /* Change the orders.get('status') to shipped */
-
             clearInterval(timer)
 
         }
-        
         
     }, 1000);
 });
