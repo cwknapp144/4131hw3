@@ -66,6 +66,98 @@ def idAssignment():
     newid = max(order["id"] for order in orders) + 1
     return newid
      
+def render_order_success(order):
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Success!</h2>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
+
+# I basically just copied this over from create new order, and yet I am frustrated
+# by how much detail needs to be considered.
+def updateHelper(params):
+    
+    scrutinize = parse_query_parameters(params)
+
+    # If anything goes wrong, the order will fail. Hopefully that will includes any 
+    # detection of XSS?
+    flag = False
+    print(scrutinize)
+    for k, v in scrutinize.items():
+        
+        # Client must fill in all fields
+        if not v:
+            flag = True
+
+    # Client must provide integers for quantity field.
+    if not scrutinize.get("quantity").isdigit() :
+        flag = True
+        
+    # TODO: Sift through the address. Do not allow anything strange through
+    # %0D%0A is \r\n .
+    # NOTE 1: Worst case, cant we just escape the address portion since quantity is already
+    # picky?
+
+    # HW3 NOTE: This is where the order is created, so time will be setup here.
+    if flag:
+        return False
+    else:
+
+        for order in orders:
+            if order.get("id") == int(scrutinize.get("updateId")):
+                order["address"] = scrutinize["updateAddress"]
+                order["cost"] = float(scrutinize["updateCost"])
+                order["product"] = scrutinize["product"]
+                order["time"] = datetime.now(None)
+    
+        return True
+    
+
+def update_order_success(order):
+    
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>You have successfully Updated your order!</h2>
+   
+        </table>
+    </body>
+</html>
+"""
+    return result
+
 
 def render_order_failure():
     
@@ -155,7 +247,7 @@ def cancel_order_failure():
 
         <h2>Sorry!</h2>
 
-        <h4>Something wrong happened when attempting to cancel your order.
+        <h4>Something wrong happened when attempting to cancel or update your order.
             Please verify your orders and contact our Customer Support team
             if the issue persists</h4>
    
@@ -200,7 +292,7 @@ def parse_query_parameters(response):
             return paramdict
 
         
-    print("PQP SP: "+ str(splitparams))
+    #print("PQP SP: "+ str(splitparams))
     # Initialize a dictionary to store parsed parameters
     paramdict = dict()
 
@@ -316,8 +408,10 @@ def render_tracking(order):
                 
 
                 <form action="update_shipping" method="POST" id="update">
+                    <input type="hidden" name="update" value="{order.get('id')}"> 
+                    <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>
                 </form>
-                <button type="submit" form="update" value="Submit" id="updateButton">Update Order</button>\n
+                
 
                 <p id="countdown">Time until shipment.</p>\n
 
@@ -583,31 +677,7 @@ def typeset_dollars(number):
     return f"${number:.2f}"
 
 
-def render_order_success(order):
-    
-    result = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Burping Turtle Orders</title>
-        <link rel="stylesheet" href="/static/css/main.css">
-    </head>
-    
-    <body>
 
-        <header>
-           <a href="/">Back to Main Page</a>
-        </header>
-       
-
-        <h2>Success!</h2>
-   
-        </table>
-    </body>
-</html>
-"""
-    return result
 
 
 def add_new_order(params):
@@ -637,7 +707,9 @@ def add_new_order(params):
     if flag:
         return None
     else:
+
         assign = idAssignment()
+        
         orders.append(
             {
             "id": assign,
@@ -658,7 +730,7 @@ def add_new_order(params):
 
 def cancel_order(params):
     
-    # NOTE: I really only care about the right-hand side. I hope this doesnt backfire.
+    
     if params != '':
         if "=" in params:
             k,v = params.split("=")
@@ -667,6 +739,8 @@ def cancel_order(params):
     
     for order in orders:
         if order.get('id') == int(v) :
+
+            # If the right-hand side is "placed", we can cancel.
             if order.get('status') == "placed":
                 #print("We found a match to cancel")
                 order['status'] = "cancelled"
@@ -677,9 +751,153 @@ def cancel_order(params):
 
 
 
-
 def update_shipping_info(params):
-    pass
+    result = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Burping Turtle Orders</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+        <script src="/static/js/order.js" defer></script>
+    </head>
+    
+    <body>
+
+        <header>
+           <a href="/">Back to Main Page</a>
+        </header>
+       
+
+        <h2>Order Tracking</h2>
+    """
+    if params != '':
+        if "=" in params:
+            k,v = params.split("=")
+    
+    for order in orders:
+        if order.get('id') == int(v) :
+
+            # If the right-hand side is "placed", we can cancel.
+            if order.get('status') == "placed":
+                
+                if order.get('status') == 'placed':
+                    result+= f"<h4>Your order has been confirmed by our team and is being prepared!</h4>\n"
+                elif order.get('status') == 'shipped':
+                    result+= f"<h4>Your order has been shipped and is currently on its way!</h4>\n"
+                elif order.get('status') == 'delivered':
+                    result+= f"<h4>Your order should have arrived. Enjoy!</h4>\n"
+                elif order.get('status') == 'cancelled':
+                    result+= f"<h4>This order has been cancelled.</h4>\n"
+                result+= """
+
+                <div class = "main">
+
+                <div class = "left">
+                    <h3> Order Details </h3>
+                    <table>
+                        <tr>
+                            <th>Order ID:</th>
+                        """
+                result+= f"<td>{order.get('id')}</td>\n"
+                result+= """
+                        </tr>
+                            
+                        <tr>
+                            <th>Product:</th>
+                        """
+                result+= f"<td>{order.get('product')}</td>\n"
+                result+= """
+                            </tr>
+                            
+                        <tr>
+                            <th>Status:</th>
+                            """
+                result+= f"<td>{order.get('status')}</td>\n"
+                result+= """
+                        </tr>
+                            
+                        <tr>
+                            <th>Cost:</th>
+                        """
+                result+= f"<td>{typeset_dollars(order.get('cost'))}</td>\n"
+                result+= """
+                        </tr>
+                        """
+                        
+                result+= """
+                    </table>
+                </div>
+
+                <div class = "right">
+                """
+
+                # WAIT A SECOND .... CANT I JUST TURN THE UPDATE COMPONENT INTO A HREF TO THE ORDERS TRACKING PAGE TO CANCEL UPDATE???
+                if order.get('status') == 'placed':
+                    result+= f"""
+                            <form action="cancel_order" method="POST" id="cancel">
+                                <input type="hidden" name="cancel" value="{order.get('id')}"> 
+                                <button type="submit" form="cancel" value="Submit" id="cancelButton">Cancel Order</button>
+                            </form>
+                            
+                            <div id="cancelUpdateButton">
+                                <a href='/tracking/{order.get('id')}'>Cancel Update</a>
+                            </div>
+                            
+
+                            <p id="countdown"></p>\n
+
+                            
+                            <form action="/update_helper" method="POST" id="updateHelper">
+                            <input type="hidden" name="updateId" value="{order.get('id')}">
+                            <p>
+                                <label for="product">Choose your product:</label>
+                                <select name="product" id="product">
+                                    <option value="p1">The One Burp Stout</option>
+                                    <option value="p2">Burping Ale</option>
+                                    <option value="p3">Twilight Shores IPA</option>
+                                    <option value="p4">Brilliant Earth Hefe-weizen</option>
+                                </select>
+                            </p>
+                            <p>
+                                <label for="quantity">quantity:</label>
+                                <input type="text" name="quantity" id="quantity" required>
+                            </p>
+                            <br>
+                            
+                            <p id="total_cost">Your Total is: $0.00</p>
+                            <input type="hidden" name= "updateCost" id="updateCost" value="0.00">
+
+                            <label for="address">address</label>
+                                <textarea id="updateAddress" name="updateAddress" rows="5" cols="50" required></textarea>
+                            <br><br>
+                                
+                            <input type="radio" id="updateFlat_rate" name="shipping_option" value="flat_rate">
+                            <label for="flat_rate">flat_rate</label><br>
+                            <input type="radio" id="updateGround" name="shipping_option" value="ground">
+                            <label for="ground">ground</label><br>
+                            <input type="radio" id="updateExpress" name="shipping_option" value="express">
+                            <label for="express">express</label> 
+                            <br>
+                            <input type="submit">
+                        </form>
+                        """
+                        
+
+                elif order.get('status') == 'cancelled':
+                    result+= f"<h4> Order number {order.get('id')} was recently cancelled.</h4>\n"
+
+
+                result+= """
+                </div>
+
+                </body>
+            </html>
+            """
+                
+
+    return result
+    
 
 
 
@@ -735,7 +953,8 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
         
 
         # NEW ORDER BLOCK. This condition seems a bit risky.
-        if "/order" in url:
+        # NOTE: YEP. This was clashing with order.js
+        if "/order.html" in url:
             return open("static/html/order.html","r").read(), "text/html", 200
 
         # TRACKING PAGE
@@ -768,9 +987,13 @@ def server_GET(url: str) -> tuple[str | bytes, str, int]:
             return open("static/images/staff.png","rb").read(), "image/", 200
 
 
-
+        # JS CALL
         if "/static/js/update" in url:
             return open("static/js/update.js","r").read(), "application/javascript", 200
+        
+        if "/static/js/order" in url:
+            #print("Is this loading?")
+            return open("static/js/order.js","r").read(), "application/javascript", 200
         
 
 
@@ -848,11 +1071,46 @@ def server_POST(url: str, body: str) -> tuple[str | bytes, str, int]:
                 
             
         except Exception as e:
-            print(e)
+            #print(e)
             return open("static/html/404.html","r").read(), "text/html", 500
-        
+    
 
-    return open("static/html/404.html","r").read(), "text/html", 404
+    if "update_shipping" in url :
+        
+        try:
+
+            if body == None or body == '' :
+                return cancel_order_failure(), "text/html", 400
+                
+            else:
+                return update_shipping_info(body), "text/html", 200
+               
+                  
+        except Exception as e:
+            #print(e)
+            return open("static/html/404.html","r").read(), "text/html", 500
+
+
+    if "update_helper" in url :
+        try:
+
+            #print("Post URL: " + url + " POST content: " + body)
+            if updateHelper(body) :
+                return update_order_success(body), "text/html", 200
+            
+            else:
+                return render_order_failure(), "text/html", 400
+
+
+            
+        except Exception as e:
+
+            return open("static/html/404.html","r").read(), "text/html", 500
+
+
+    return open("static/html/404.html","r").read(), "text/html", 400
+
+    
     
 
      
